@@ -1,5 +1,5 @@
 use rand::{thread_rng, Rng};
-use std::io;
+use std::{cmp::Ordering, io};
 
 fn main() {
     println!("guess the number");
@@ -11,11 +11,14 @@ fn main() {
             .read_line(&mut guess)
             .expect("Failed to read line?");
         let guess: i32 = guess.trim().parse().expect("Error while casting");
-        if guess.cmp(&random_number).is_eq() {
-            println!("You guess correctly. The number was: {}", guess);
-            has_guessed = true;
-        } else {
-            println!("You guessed wrong");
+
+        match guess.cmp(&random_number) {
+            Ordering::Less => println!("the number is bigger"),
+            Ordering::Greater => println!("the number is smaller"),
+            Ordering::Equal => {
+                println!("you guess right: {}", guess);
+                has_guessed = true;
+            }
         }
     }
 }
