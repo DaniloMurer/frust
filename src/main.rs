@@ -39,5 +39,6 @@ fn main() {
 }
 
 fn calculate_age(user: &User) -> usize {
+    println!("username: {}, address: {:p}", &user.username, &user);
     user.calculate_age()
 }
