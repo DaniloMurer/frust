@@ -1,11 +1,13 @@
 // use rand::{thread_rng, Rng};
 // use std::{cmp::Ordering, io};
 
+use std::process::Command;
+
 /// [`User`]
 ///
 struct User {
     username: String,
-    age: usize
+    age: usize,
 }
 
 impl User {
@@ -15,8 +17,13 @@ impl User {
 }
 
 fn main() {
-    let user: User = User{username: String::from("churrer"), age: 16 };
+    let user: User = User {
+        username: String::from("churrer"),
+        age: 16,
+    };
     println!("User's age is: {}", calculate_age(&user));
+    let output = Command::new("ls").output().expect("Failed to run command");
+    println!("{}", String::from_utf8_lossy(&output.stdout));
     // println!("guess the number");
     // let random_number: u8 = thread_rng().gen_range(1..=20);
     // let mut has_guessed = false;
