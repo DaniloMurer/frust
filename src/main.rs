@@ -1,36 +1,36 @@
-use std::{os::linux::raw::stat, process::{Command, ExitStatus}};
-
-/// [`User`]
-///
-struct User {
-    username: String,
-    age: usize,
-}
-
-impl User {
-    fn calculate_age(&self) -> usize {
-        self.age.pow(2)
-    }
-}
+use std::{env, process::{Command, ExitStatus}};
 
 fn main() {
-    let user: User = User {
-        username: String::from("churrer"),
-        age: 16,
-    };
-    println!("User's age is: {}", calculate_age(&user));
-    let output = Command::new("ls").output().expect("Failed to run command");
-    println!("{}", String::from_utf8_lossy(&output.stdout));
-    println!("{}", &output.status);
-    let commit_status = commit_changes();
+    
+    let args: Vec<String> = env::args().collect();
+
+    let location = args.get(1).expect("error please provide arguments [gitops_repo_location old_version new_version]");
+    let old_version = args.get(2).expect("error please provide arguments [gitops_repo_location old_version new_version]");
+    let new_version = args.get(3).expect("error please provide arguments [gitops_repo_location old_version new_version]");
+
+    assert_eq!(location.is_empty(), false, "provide a location");
+    assert_eq!(old_version.is_empty(), false, "provide a version to replace");
+    assert_eq!(new_version.is_empty(), false, "provide a version to bump to");
+
+    dbg!(args);
+    // if commit_changes(location).success() {
+    //     // we good to push
+    //     assert!(push_changes().success());
+    // }
 }
 
-fn commit_changes() -> ExitStatus {
-    let commit = Command::new("git").args(["commit", "-am", "feat: bumped version"]).status();
-    commit.expect("")
+/// commit_changes stages and commits current changes
+fn commit_changes(location: &String) -> ExitStatus {
+    let mut commit = Command::new("git");
+    commit.args(["-C", location, "commit", "-am", "feat: bumped version"]);
+    let commit_status = commit.status().expect("error while getting exit code");
+    commit_status
 }
 
-fn calculate_age(user: &User) -> usize {
-    println!("username: {}, address: {:p}", &user.username, &user);
-    user.calculate_age()
+/// push_changes pushes staged & commited changes
+fn push_changes(location: &String) -> ExitStatus {
+    let mut push = Command::new("git");
+    push.args(["-C", location, "push"]);
+    return push.status().expect("error while getting exit code");
 }
+
