@@ -12,7 +12,8 @@ fn main() {
     assert_eq!(old_version.is_empty(), false, "provide a version to replace");
     assert_eq!(new_version.is_empty(), false, "provide a version to bump to");
 
-    dbg!(args);
+    dbg!(&args);
+    commit_changes(location);
     // if commit_changes(location).success() {
     //     // we good to push
     //     assert!(push_changes().success());
