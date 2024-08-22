@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: house
+  labels:
+    app: house
+spec:
+  selector:
+    matchLabels:
+      app: house
+  template:
+    metadata:
+      labels:
+        app: house
+    spec:
+      imagePullSecrets:
+        - name: churrer-registry
+      containers:
+        - name: house-client
+          resources:
+            requests:
+              memory: "200Mi"
+              cpu: "0.5"
+              ephemeral-storage: "2Gi"
+            limits:
+              memory: "400Mi"
+              cpu: "1"
+              ephemeral-storage: "2Gi"
+          image: ghcr.io/danilomurer/churrer.xyz:0.5.0
+          securityContext:
+            allowPrivilegeEscalation: false
+          ports:
+            - containerPort: 3000
+          env:
+            - name: API_HOST
+              value: "http://house-server:8080"
+      automountServiceAccountToken: false
