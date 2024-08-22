@@ -3,19 +3,38 @@ use std::io::{BufRead, BufReader, Lines};
 use std::path::Path;
 use std::{env, io, process::{Command, ExitStatus}};
 
+/// Hold arguments for cli
+struct Arguments {
+    location: String,
+    old_version: String,
+    new_version: String
+}
+
+impl Arguments {
+    fn new(args: &Vec<String>) -> Result<Self, &'static str> {
+        if args.len() < 4 {
+            return Err("error please provide arguments [gitops_repo_location old_version new_version]")
+        }
+
+        let location = args[1].clone();
+        let old_version = args[2].clone();
+        let new_version  = args[3].clone();
+
+        Ok(Arguments{location, old_version, new_version})
+    }
+}
+
+
 fn main() -> io::Result<()> {
 
     let args: Vec<String> = env::args().collect();
 
-    let location = args.get(1).expect("error please provide arguments [gitops_repo_location old_version new_version]");
-    let old_version = args.get(2).expect("error please provide arguments [gitops_repo_location old_version new_version]");
-    let new_version = args.get(3).expect("error please provide arguments [gitops_repo_location old_version new_version]");
+    let cli_args = Arguments::new(&args).unwrap_or_else(|err| {
+        eprintln!("{}", err);
+        std::process::exit(1);
+    });
 
-    assert_eq!(location.is_empty(), false, "provide a location");
-    assert_eq!(old_version.is_empty(), false, "provide a version to replace");
-    assert_eq!(new_version.is_empty(), false, "provide a version to bump to");
-
-    let lines = read_file_content(&location)?;
+    let lines = read_file_content(&cli_args.location)?;
     for line in lines {
         if let Ok(line_content) = line {
             println!("{}", line_content);
