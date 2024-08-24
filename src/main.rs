@@ -116,7 +116,7 @@ fn commit_changes(location: &String, new_version: &String) -> ExitStatus {
     let mut commit = Command::new("git");
     let file_path = Path::new(location);
     let parent_path = file_path.parent().unwrap();
-    commit.args(["-C", parent_path.to_str().unwrap(), "commit", "-am", concat!("feat: bumped version ")]);
+    commit.args(["-C", parent_path.to_str().unwrap(), "commit", "-am", &format!("feat: bumped to version {}", new_version)]);
     commit.status().expect("error while getting exit code")
 }
 
