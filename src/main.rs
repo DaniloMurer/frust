@@ -1,37 +1,43 @@
 use std::fs::File;
 use std::io::{BufRead, BufReader, Lines, Write};
 use std::path::Path;
-use std::{env, io, process::{Command, ExitStatus}};
+use std::{
+    env, io,
+    process::{Command, ExitStatus},
+};
 
 /// Hold arguments for cli
 struct Arguments {
     location: String,
     old_version: String,
     new_version: String,
-    commit_flag: bool
+    commit_flag: bool,
 }
 
 impl Arguments {
     fn new(args: &Vec<String>) -> Result<Self, &'static str> {
         if args.len() < 4 {
-            return Err("error please provide required arguments [gitops_repo_location old_version new_version]")
+            return Err("error please provide required arguments [gitops_repo_location old_version new_version]");
         }
 
         let location = args[1].clone();
         let old_version = args[2].clone();
-        let new_version  = args[3].clone();
+        let new_version = args[3].clone();
         let mut commit_flag = true;
         if args[4].clone() == "ng" {
             commit_flag = false;
         }
 
-        Ok(Arguments{location, old_version, new_version, commit_flag})
+        Ok(Arguments {
+            location,
+            old_version,
+            new_version,
+            commit_flag,
+        })
     }
 }
 
-
 fn main() -> io::Result<()> {
-
     let args: Vec<String> = env::args().collect();
 
     let cli_args = Arguments::new(&args).unwrap_or_else(|err| {
@@ -101,7 +107,6 @@ fn write_to_file(file_path: &String, file_content: Vec<String>) -> io::Result<()
     file?.write_all((file_content.join("\n")).as_ref())
 }
 
-
 /// Commits changes in defined repo based on `location`
 ///
 /// # Arguments
@@ -116,7 +121,13 @@ fn commit_changes(location: &String, new_version: &String) -> ExitStatus {
     let mut commit = Command::new("git");
     let file_path = Path::new(location);
     let parent_path = file_path.parent().unwrap();
-    commit.args(["-C", parent_path.to_str().unwrap(), "commit", "-am", &format!("feat: bumped to version {}", new_version)]);
+    commit.args([
+        "-C",
+        parent_path.to_str().unwrap(),
+        "commit",
+        "-am",
+        &format!("feat: bumped to version {}", new_version),
+    ]);
     commit.status().expect("error while getting exit code")
 }
 
@@ -137,4 +148,3 @@ fn push_changes(location: &String) -> ExitStatus {
     push.args(["-C", parent_path.to_str().unwrap(), "push"]);
     push.status().expect("error while getting exit code")
 }
-
