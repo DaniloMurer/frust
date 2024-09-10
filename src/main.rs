@@ -1,89 +1,52 @@
 use std::fs::File;
-use std::io::{BufRead, BufReader, Lines, Write};
+use std::io::{BufRead, BufReader, Lines, Read, Write};
 use std::path::Path;
 use std::{
-    env, io,
+    io,
     process::{Command, ExitStatus},
 };
 
 use ratatui::crossterm::event::{self, Event, KeyCode, KeyEventKind};
-use ratatui::style::Stylize;
-use ratatui::widgets::Paragraph;
+use ratatui::layout::Alignment;
+use ratatui::symbols::border;
+use ratatui::text::Text;
+use ratatui::widgets::block::Title;
+use ratatui::widgets::{Block, Paragraph};
 use ratatui::DefaultTerminal;
+use serde::Deserialize;
 
-/// Hold arguments for cli
-struct Arguments {
-    location: String,
-    old_version: String,
-    new_version: String,
-    commit_flag: bool,
+#[derive(Deserialize, Debug)]
+struct Config {
+    name: String,
+    location: Location
 }
 
-impl Arguments {
-    fn new(args: &[String]) -> Result<Self, &'static str> {
-        if args.len() < 4 {
-            return Err("error please provide required arguments [gitops_repo_location old_version new_version]");
-        }
-
-        let location = args[1].clone();
-        let old_version = args[2].clone();
-        let new_version = args[3].clone();
-        let mut commit_flag = true;
-        if args[4].clone() == "ng" {
-            commit_flag = false;
-        }
-
-        Ok(Arguments {
-            location,
-            old_version,
-            new_version,
-            commit_flag,
-        })
-    }
+#[derive(Deserialize, Debug)]
+struct Location {
+    location: String,
+    previous_version: String
 }
 
 fn main() -> io::Result<()> {
     let mut terminal = ratatui::init();
     terminal.clear()?;
-    /*let args: Vec<String> = env::args().collect();
-
-    let cli_args = Arguments::new(&args).unwrap_or_else(|err| {
-        eprintln!("{}", err);
-        std::process::exit(1);
-    });
-
-    let lines = read_file_content(&cli_args.location)?;
-    let mut new_lines: Vec<String> = Vec::new();
-    for line in lines {
-        if let Ok(mut line_content) = line {
-            if line_content.contains(&cli_args.old_version) {
-                line_content = line_content.replace(&cli_args.old_version, &cli_args.new_version);
-            }
-            new_lines.push(line_content);
-        }
-    }
-
-    write_to_file(&cli_args.location, new_lines).unwrap_or_else(|err| {
-        eprintln!("{}", err);
-        std::process::exit(1);
-    });
-
-    if cli_args.commit_flag && commit_changes(&cli_args.location, &cli_args.new_version).success() {
-        // we good to push
-        assert!(push_changes(&cli_args.location).success());
-    }
-    dbg!(&args);*/
     run(terminal)
 }
 
 fn run(mut terminal: DefaultTerminal) -> io::Result<()> {
+    //let home_path = env::var("HOME").unwrap();
+    let configs_path: String = "/home/churrer/Documents/github/frust/test/churrer.xyz.toml".to_owned();
+    let config = read_config_toml(&configs_path);
     loop {
         terminal.draw(|frame| {
-            let header_text = Paragraph::new("Welcome to Frust!")
-                .white()
-                .on_black()
-                .centered();
-            frame.render_widget(header_text, frame.area());
+            let header_text = Title::from(" Frust ");
+            let block = Block::bordered()
+                .title(header_text.alignment(Alignment::Center))
+                .border_set(border::THICK);
+            let content = Paragraph::new(Text::from(config.name.clone()))
+                .centered()
+                .block(block);
+            frame.render_widget(content, frame.area());
         })?;
         if let Event::Key(key) = event::read()? {
             if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('q') {
@@ -91,6 +54,16 @@ fn run(mut terminal: DefaultTerminal) -> io::Result<()> {
             }
         }
     }
+}
+
+fn read_config_toml(file_path: &String) -> Config
+{
+    let mut file = File::open(file_path).expect("error");
+    let mut buf = String::new();
+    file.read_to_string(&mut buf).expect("Error while reading file to string");
+    let config: Config = toml::from_str(&buf).unwrap();
+    config
+
 }
 
 /// Reads the content from a file line by line.
