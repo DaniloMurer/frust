@@ -18,13 +18,13 @@ use serde::Deserialize;
 #[derive(Deserialize, Debug)]
 struct Config {
     name: String,
-    location: Location
+    location: Location,
 }
 
 #[derive(Deserialize, Debug)]
 struct Location {
     location: String,
-    previous_version: String
+    previous_version: String,
 }
 
 fn main() -> io::Result<()> {
@@ -35,7 +35,8 @@ fn main() -> io::Result<()> {
 
 fn run(mut terminal: DefaultTerminal) -> io::Result<()> {
     //let home_path = env::var("HOME").unwrap();
-    let configs_path: String = "/home/churrer/Documents/github/frust/test/churrer.xyz.toml".to_owned();
+    let configs_path: String =
+        "/home/churrer/Documents/github/frust/test/churrer.xyz.toml".to_owned();
     let config = read_config_toml(&configs_path);
     loop {
         terminal.draw(|frame| {
@@ -56,14 +57,13 @@ fn run(mut terminal: DefaultTerminal) -> io::Result<()> {
     }
 }
 
-fn read_config_toml(file_path: &String) -> Config
-{
+fn read_config_toml(file_path: &String) -> Config {
     let mut file = File::open(file_path).expect("error");
     let mut buf = String::new();
-    file.read_to_string(&mut buf).expect("Error while reading file to string");
+    file.read_to_string(&mut buf)
+        .expect("Error while reading file to string");
     let config: Config = toml::from_str(&buf).unwrap();
     config
-
 }
 
 /// Reads the content from a file line by line.
