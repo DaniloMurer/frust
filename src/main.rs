@@ -1,150 +1,90 @@
-use std::fs::File;
-use std::io::{BufRead, BufReader, Lines, Write};
-use std::path::Path;
-use std::{
-    env, io,
-    process::{Command, ExitStatus},
-};
+mod frust;
+use std::io;
+use std::io::Stdout;
+use std::vec;
 
-/// Hold arguments for cli
-struct Arguments {
-    location: String,
-    old_version: String,
-    new_version: String,
-    commit_flag: bool,
+use frust::config::get_configs;
+use frust::core::update_file_version;
+use ratatui::crossterm::event::{self, Event, KeyCode, KeyEventKind};
+use ratatui::layout::{Alignment, Constraint};
+use ratatui::prelude::CrosstermBackend;
+use ratatui::style::{Style, Stylize};
+use ratatui::symbols::border;
+use ratatui::widgets::block::Title;
+use ratatui::widgets::{Block, Row, Table, TableState};
+use ratatui::Terminal;
+
+struct App {
+    table_state: TableState,
+    title: &'static str,
+    terminal: Terminal<CrosstermBackend<Stdout>>,
 }
 
-impl Arguments {
-    fn new(args: &Vec<String>) -> Result<Self, &'static str> {
-        if args.len() < 4 {
-            return Err("error please provide required arguments [gitops_repo_location old_version new_version]");
+impl App {
+    fn default() -> Self {
+        Self {
+            table_state: TableState::default(),
+            title: " Frust ",
+            terminal: ratatui::init(),
         }
+    }
 
-        let location = args[1].clone();
-        let old_version = args[2].clone();
-        let new_version = args[3].clone();
-        let mut commit_flag = true;
-        if args[4].clone() == "ng" {
-            commit_flag = false;
+    fn run(&mut self) -> io::Result<()> {
+        //let home_path = env::var("HOME").unwrap();
+        let configs = get_configs("/home/churrer/Documents/github/frust/test");
+        let mut rows: Vec<Row> = vec![];
+        let widths = [Constraint::Length(50), Constraint::Length(100)];
+
+        for test in configs.iter() {
+            rows.push(Row::new(vec![
+                test.name.clone(),
+                test.location.location.clone(),
+            ]));
         }
+        loop {
+            self.terminal.draw(|frame| {
+                let header_text = Title::from(self.title);
+                let block = Block::bordered()
+                    .title(header_text.alignment(Alignment::Center))
+                    .border_set(border::THICK);
+                let table = Table::new(rows.to_owned(), widths)
+                    .column_spacing(1)
+                    .header(
+                        Row::new(vec!["Config Name", "Config Location"])
+                            .style(Style::new().bold())
+                            .bottom_margin(1),
+                    )
+                    .highlight_style(Style::new().reversed())
+                    .block(block);
+                frame.render_stateful_widget(table, frame.area(), &mut self.table_state);
+            })?;
+            if let Event::Key(key) = event::read()? {
+                if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('q') {
+                    return Ok(());
+                }
+                if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('j') {
+                    self.table_state.scroll_down_by(1);
+                }
+                if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('k') {
+                    self.table_state.scroll_up_by(1);
+                }
+                if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('l') {
+                    let selected_row_index = self.table_state.selected().unwrap();
+                    let selected_config = &configs[selected_row_index];
+                    update_file_version(selected_config, &String::from("churrer.xyz:1.0.0"))
+                        .expect("error while updating file version");
+                }
+            }
+        }
+    }
 
-        Ok(Arguments {
-            location,
-            old_version,
-            new_version,
-            commit_flag,
-        })
+    fn clear(mut self) -> io::Result<()> {
+        self.terminal.clear()
     }
 }
 
 fn main() -> io::Result<()> {
-    let args: Vec<String> = env::args().collect();
-
-    let cli_args = Arguments::new(&args).unwrap_or_else(|err| {
-        eprintln!("{}", err);
-        std::process::exit(1);
-    });
-
-    let lines = read_file_content(&cli_args.location)?;
-    let mut new_lines: Vec<String> = Vec::new();
-    for line in lines {
-        if let Ok(mut line_content) = line {
-            if line_content.contains(&cli_args.old_version) {
-                line_content = line_content.replace(&cli_args.old_version, &cli_args.new_version);
-            }
-            new_lines.push(line_content);
-        }
-    }
-
-    write_to_file(&cli_args.location, new_lines).unwrap_or_else(|err| {
-        eprintln!("{}", err);
-        std::process::exit(1);
-    });
-
-    if cli_args.commit_flag {
-        if commit_changes(&cli_args.location, &cli_args.new_version).success() {
-            // we good to push
-            assert!(push_changes(&cli_args.location).success());
-        }
-    }
-    dbg!(&args);
-    Ok(())
-}
-
-/// Reads the content from a file line by line.
-///
-/// # Arguments
-///
-/// * `file_path` - A path that references the file to be read.
-///
-/// # Returns
-///
-/// This function returns an [`io::Result`] containing an iterator over the lines of the file.
-/// Each item of the iterator is a [`Result`] where [`Ok`] is a line in the file
-/// and [`Err`] is an [`io::Error`].
-/// ```
-fn read_file_content<P>(file_path: P) -> io::Result<Lines<BufReader<File>>>
-where
-    P: AsRef<Path>,
-{
-    let file = File::open(file_path)?;
-    Ok(BufReader::new(file).lines())
-}
-
-/// Writes content to file
-///
-/// # Arguments
-/// * `location` - Path to write to.
-/// * `file_content` - File content to write as a [`Vec<String>`] vector.
-///
-/// # Returns
-///
-/// Function returns a [`io::Result`].
-/// If an error occurs while writing to file, a [`Err`] is returned.
-/// Upon successful writing to file [`Ok`] is returned
-fn write_to_file(file_path: &String, file_content: Vec<String>) -> io::Result<()> {
-    let file = File::create(file_path);
-    file?.write_all((file_content.join("\n")).as_ref())
-}
-
-/// Commits changes in defined repo based on `location`
-///
-/// # Arguments
-///
-/// * `location` - Path to changed file
-///
-/// # Returns
-///
-/// [`ExitCode`] - Exit code of the git commit command
-///
-fn commit_changes(location: &String, new_version: &String) -> ExitStatus {
-    let mut commit = Command::new("git");
-    let file_path = Path::new(location);
-    let parent_path = file_path.parent().unwrap();
-    commit.args([
-        "-C",
-        parent_path.to_str().unwrap(),
-        "commit",
-        "-am",
-        &format!("feat: bumped to version {}", new_version),
-    ]);
-    commit.status().expect("error while getting exit code")
-}
-
-/// Pushes commited changes upstream in defined repo based on `location`
-///
-/// # Arguments
-///
-/// * `location` - Path to changed file
-///
-/// # Returns
-///
-/// [`ExitCode`] - Exit code of the git push command
-///
-fn push_changes(location: &String) -> ExitStatus {
-    let mut push = Command::new("git");
-    let file_path = Path::new(location);
-    let parent_path = file_path.parent().unwrap();
-    push.args(["-C", parent_path.to_str().unwrap(), "push"]);
-    push.status().expect("error while getting exit code")
+    let mut app = App::default();
+    app.run()?;
+    app.clear()
 }
