@@ -8,7 +8,7 @@ use std::{
 
 use super::config::Config;
 
-pub fn update_file_version(config: &Config, new_version: &String) -> Result<(), Error> {
+pub fn update_file_version(config: &Config, new_version: &str) -> Result<(), Error> {
     let lines = read_file_content(&config.location.location);
     let lines = match lines {
         Ok(buffer) => buffer,
@@ -76,6 +76,7 @@ fn write_to_file(file_path: &String, file_content: Vec<String>) -> io::Result<()
 ///
 /// [`ExitCode`] - Exit code of the git commit command
 ///
+#[allow(dead_code)]
 fn commit_changes(location: &String, new_version: &String) -> ExitStatus {
     let mut commit = Command::new("git");
     let file_path = Path::new(location);
@@ -100,6 +101,7 @@ fn commit_changes(location: &String, new_version: &String) -> ExitStatus {
 ///
 /// [`ExitCode`] - Exit code of the git push command
 ///
+#[allow(dead_code)]
 fn push_changes(location: &String) -> ExitStatus {
     let mut push = Command::new("git");
     let file_path = Path::new(location);
