@@ -26,7 +26,7 @@ spec:
               memory: "400Mi"
               cpu: "1"
               ephemeral-storage: "2Gi"
-          image: ghcr.io/danilomurer/churrer.xyz:0.7.0
+          image: ghcr.io/danilomurer/churrer.xyz:1.0.0
           securityContext:
             allowPrivilegeEscalation: false
           ports:
@@ -35,3 +35,4 @@ spec:
             - name: API_HOST
               value: "http://house-server:8080"
       automountServiceAccountToken: false
+
