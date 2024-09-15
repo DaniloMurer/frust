@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use std::env;
 use std::fs::{self, File};
 use std::io::Read;
 
@@ -15,16 +16,18 @@ pub struct Location {
 }
 
 /// Reads frust project config files
-/// # Arguments
-///
-/// * `config_directory` - Path to frust project config files.
 ///
 /// # Returns
 ///
 /// Returns a vector [`Vec<Config>`] with all frust project configurations
 ///
-pub fn get_configs(config_directory: &'static str) -> Vec<Config> {
-    let toml_paths = fs::read_dir(config_directory).unwrap();
+pub fn get_configs() -> Vec<Config> {
+    let home_path = format!("{}/.frust", env::var("HOME").unwrap());
+    // check if folder exists, if not create .frust folder in home path
+    if fs::metadata(&home_path).is_err() {
+        fs::create_dir(&home_path).expect("error while creating .frust folder in home path");
+    }
+    let toml_paths = fs::read_dir(home_path).unwrap();
     let mut return_paths: Vec<String> = vec![];
     let mut configs: Vec<Config> = vec![];
 
@@ -40,16 +43,6 @@ pub fn get_configs(config_directory: &'static str) -> Vec<Config> {
     configs
 }
 
-/// Parses a frust project toml and parses it to a [`Config`]
-///
-/// # Arguments
-///
-/// * `file_path` - Path to a frust project toml file.
-///
-/// # Returns
-///
-/// Returns a [`Config`] parsed from given toml file.
-///
 fn read_config_toml(file_path: String) -> Config {
     let mut file = File::open(file_path).expect("error");
     let mut buf = String::new();

@@ -35,4 +35,3 @@ spec:
             - name: API_HOST
               value: "http://house-server:8080"
       automountServiceAccountToken: false
-

@@ -50,8 +50,7 @@ impl App {
     }
 
     pub fn run(&mut self) -> io::Result<()> {
-        //let home_path = env::var("HOME").unwrap();
-        let configs = get_configs("/home/churrer/Documents/github/frust/test");
+        let configs = get_configs();
         let mut rows: Vec<Row> = vec![];
         let widths = [Constraint::Length(50), Constraint::Length(100)];
 
