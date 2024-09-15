@@ -14,6 +14,25 @@ use ratatui::widgets::block::Title;
 use ratatui::widgets::{Block, Row, Table, TableState};
 use ratatui::Terminal;
 
+#[allow(clippy::upper_case_acronyms)]
+enum Key {
+    QUIT,
+    UP,
+    DOWN,
+    ENTER,
+}
+
+impl Key {
+    fn value(self) -> KeyCode {
+        match self {
+            Self::QUIT => KeyCode::Char('q'),
+            Self::UP => KeyCode::Char('k'),
+            Self::DOWN => KeyCode::Char('j'),
+            Self::ENTER => KeyCode::Char('l'),
+        }
+    }
+}
+
 struct App {
     table_state: TableState,
     title: &'static str,
@@ -59,16 +78,16 @@ impl App {
                 frame.render_stateful_widget(table, frame.area(), &mut self.table_state);
             })?;
             if let Event::Key(key) = event::read()? {
-                if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('q') {
+                if key.kind == KeyEventKind::Press && key.code == Key::QUIT.value() {
                     return Ok(());
                 }
-                if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('j') {
+                if key.kind == KeyEventKind::Press && key.code == Key::DOWN.value() {
                     self.table_state.scroll_down_by(1);
                 }
-                if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('k') {
+                if key.kind == KeyEventKind::Press && key.code == Key::UP.value() {
                     self.table_state.scroll_up_by(1);
                 }
-                if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('l') {
+                if key.kind == KeyEventKind::Press && key.code == Key::ENTER.value() {
                     let selected_row_index = self.table_state.selected().unwrap();
                     let selected_config = &configs[selected_row_index];
                     update_file_version(selected_config, &String::from("churrer.xyz:1.0.0"))
