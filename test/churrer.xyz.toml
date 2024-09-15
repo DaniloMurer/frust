@@ -1,4 +1,4 @@
 name = "churrer.xyz"
 ['location']
 location = "/home/churrer/Documents/github/frust/test/deployment.yaml"
-previous_version = "churrer.xyz:0.6.1"
+previous_version = "churrer.xyz:0.7.0"
