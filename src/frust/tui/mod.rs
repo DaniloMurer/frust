@@ -9,7 +9,7 @@ use ratatui::layout::{Alignment, Constraint};
 use ratatui::prelude::CrosstermBackend;
 use ratatui::style::{Style, Stylize};
 use ratatui::symbols::border;
-use ratatui::widgets::block::Title;
+use ratatui::widgets::block::{Position, Title};
 use ratatui::widgets::{Block, Row, Table, TableState};
 use ratatui::Terminal;
 
@@ -35,6 +35,7 @@ impl Key {
 pub struct App {
     table_state: TableState,
     title: &'static str,
+    footer: &'static str,
     terminal: Terminal<CrosstermBackend<Stdout>>,
 }
 
@@ -43,6 +44,7 @@ impl App {
         Self {
             table_state: TableState::default(),
             title: " Frust ",
+            footer: " <q>: quit, <j>: navigate down, <k>: navigate up, <l>: run selected config ",
             terminal: ratatui::init(),
         }
     }
@@ -62,8 +64,14 @@ impl App {
         loop {
             self.terminal.draw(|frame| {
                 let header_text = Title::from(self.title);
+                let footer_text = Title::from(self.footer);
                 let block = Block::bordered()
                     .title(header_text.alignment(Alignment::Center))
+                    .title(
+                        footer_text
+                            .alignment(Alignment::Center)
+                            .position(Position::Bottom),
+                    )
                     .border_set(border::THICK);
                 let table = Table::new(rows.to_owned(), widths)
                     .column_spacing(1)
