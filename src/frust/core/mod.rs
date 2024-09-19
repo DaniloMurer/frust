@@ -12,11 +12,11 @@ pub fn update_file_version(config: &Config, new_version: &str) -> Result<(), Err
     let lines = read_file_content(&config.location.location);
     let lines = match lines {
         Ok(buffer) => buffer,
-        Err(_) => panic!("Erro while reading file content, make sure path is valid"),
+        Err(_) => panic!("Error while reading file content, make sure path is valid"),
     };
     let mut new_lines: Vec<String> = vec![];
     for line in lines {
-        let mut line_content = line.unwrap();
+        let mut line_content = line?;
         if line_content.contains(&config.location.previous_version) {
             line_content = line_content.replace(&config.location.previous_version, new_version);
         }

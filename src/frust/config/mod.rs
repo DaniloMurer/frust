@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use std::env;
 use std::fs::{self, File};
-use std::io::Read;
+use std::io::{Error, Read};
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
@@ -21,33 +21,36 @@ pub struct Location {
 ///
 /// Returns a vector [`Vec<Config>`] with all frust project configurations
 ///
-pub fn get_configs() -> Vec<Config> {
+pub fn get_configs() -> Result<Vec<Config>, Error> {
     let home_path = format!("{}/.frust", env::var("HOME").unwrap());
     // check if folder exists, if not create .frust folder in home path
     if fs::metadata(&home_path).is_err() {
         fs::create_dir(&home_path).expect("error while creating .frust folder in home path");
     }
-    let toml_paths = fs::read_dir(home_path).unwrap();
+    let toml_paths = fs::read_dir(home_path)?;
     let mut return_paths: Vec<String> = vec![];
     let mut configs: Vec<Config> = vec![];
 
     for toml_path in toml_paths {
-        let raw_path = toml_path.unwrap().path().to_str().unwrap().to_string();
+        let raw_path = toml_path?.path().to_str().unwrap().to_string();
         if raw_path.contains(".toml") {
             return_paths.push(raw_path);
         }
     }
     for path in return_paths {
-        configs.push(read_config_toml(path));
+        match read_config_toml(path) {
+            Ok(config) => configs.push(config),
+            _ => {}
+        }
     }
-    configs
+    Ok(configs)
 }
 
-fn read_config_toml(file_path: String) -> Config {
+fn read_config_toml(file_path: String) -> Result<Config, toml::de::Error> {
     let mut file = File::open(file_path).expect("error");
     let mut buf = String::new();
     file.read_to_string(&mut buf)
         .expect("Error while reading file to string");
-    let config: Config = toml::from_str(&buf).unwrap();
-    config
+    let config: Config = toml::from_str(&buf)?;
+    Ok(config)
 }

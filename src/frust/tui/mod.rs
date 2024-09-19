@@ -105,7 +105,7 @@ impl App {
     }
 
     pub fn run(&mut self) -> io::Result<()> {
-        let configs = get_configs();
+        let configs = get_configs().unwrap_or(vec![]);
         let mut rows: Vec<Row> = vec![];
 
         for test in configs.iter() {
