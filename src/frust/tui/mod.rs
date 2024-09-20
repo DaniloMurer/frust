@@ -2,6 +2,8 @@ use std::io;
 use std::io::Stdout;
 use std::vec;
 
+use super::components::input_field::InputField;
+use super::components::input_field::InputMode;
 use super::config::get_configs;
 use super::core::update_file_version;
 use ratatui::crossterm::event::{self, Event, KeyCode, KeyEventKind};
@@ -12,76 +14,6 @@ use ratatui::symbols::border;
 use ratatui::widgets::block::{Position, Title};
 use ratatui::widgets::{Block, Clear, Paragraph, Row, Table, TableState};
 use ratatui::Terminal;
-
-enum InputMode {
-    Editing,
-    Normal,
-}
-
-struct InputField {
-    input: String,
-    character_index: usize,
-    input_mode: InputMode,
-}
-
-impl InputField {
-    const fn new() -> Self {
-        Self {
-            input: String::new(),
-            input_mode: InputMode::Normal,
-            character_index: 0,
-        }
-    }
-
-    fn move_cursor_left(&mut self) {
-        let cursor_moved_left = self.character_index.saturating_sub(1);
-        self.character_index = self.clamp_cursor(cursor_moved_left);
-    }
-
-    fn move_cursor_right(&mut self) {
-        let cursor_moved_left = self.character_index.saturating_add(1);
-        self.character_index = self.clamp_cursor(cursor_moved_left);
-    }
-
-    fn enter_char(&mut self, new_char: char) {
-        let index = self.byte_index();
-        self.input.insert(index, new_char);
-        self.move_cursor_right();
-    }
-
-    fn delete_char(&mut self) {
-        let is_not_cursor_leftmost = self.character_index != 0;
-        if is_not_cursor_leftmost {
-            let current_index = self.character_index;
-            let from_left_to_current_index = current_index - 1;
-            let before_char_to_delete = self.input.chars().take(from_left_to_current_index);
-            let after_char_to_delete = self.input.chars().skip(current_index);
-
-            self.input = before_char_to_delete.chain(after_char_to_delete).collect();
-            self.move_cursor_left();
-        }
-    }
-
-    fn byte_index(&self) -> usize {
-        self.input
-            .char_indices()
-            .map(|(i, _)| i)
-            .nth(self.character_index)
-            .unwrap_or(self.input.len())
-    }
-
-    fn clamp_cursor(&self, new_cursor_position: usize) -> usize {
-        new_cursor_position.clamp(0, self.input.chars().count())
-    }
-
-    fn reset_cursor(&mut self) {
-        self.character_index = 0;
-    }
-
-    fn reset_input(&mut self) {
-        self.input = String::new();
-    }
-}
 
 pub struct App {
     table_state: TableState,
@@ -105,7 +37,7 @@ impl App {
     }
 
     pub fn run(&mut self) -> io::Result<()> {
-        let configs = get_configs().unwrap_or(vec![]);
+        let configs = get_configs().unwrap_or_default();
         let mut rows: Vec<Row> = vec![];
 
         for test in configs.iter() {

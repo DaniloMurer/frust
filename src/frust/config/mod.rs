@@ -38,9 +38,8 @@ pub fn get_configs() -> Result<Vec<Config>, Error> {
         }
     }
     for path in return_paths {
-        match read_config_toml(path) {
-            Ok(config) => configs.push(config),
-            _ => {}
+        if let Ok(config) = read_config_toml(path) {
+            configs.push(config);
         }
     }
     Ok(configs)
