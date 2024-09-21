@@ -1,12 +1,15 @@
 use std::io;
 use std::io::Stdout;
+use std::rc::Rc;
 use std::vec;
 
+use super::components::input_field;
 use super::components::input_field::InputField;
 use super::components::input_field::InputMode;
 use super::config::get_configs;
 use super::core::update_file_version;
 use ratatui::crossterm::event::{self, Event, KeyCode, KeyEventKind};
+use ratatui::layout::Direction;
 use ratatui::layout::{Alignment, Constraint, Flex, Layout, Rect};
 use ratatui::prelude::CrosstermBackend;
 use ratatui::style::{Modifier, Style, Stylize};
@@ -46,7 +49,8 @@ impl App {
                 test.location.location.clone(),
             ]));
         }
-        let mut input_field = InputField::new();
+        let mut input_field_old_version = InputField::new();
+        let mut input_field_new_version = InputField::new();
         loop {
             self.terminal.draw(|frame| {
                 let header_text = Title::from(self.title);
@@ -74,22 +78,33 @@ impl App {
 
                 if self.show_popup {
                     let popup_area = create_popup_area(frame.area());
-                    let input_widget = Paragraph::new(input_field.input.as_str())
-                        .style(match input_field.input_mode {
+                    let popup_layout = create_input_layout(popup_area);
+                    let input_old_version = Paragraph::new(input_field_old_version.input.as_str())
+                        .style(match input_field_old_version.input_mode {
                             InputMode::Normal => Style::default(),
                             InputMode::Editing => Style::default()
                                 .fg(ratatui::style::Color::Magenta)
                                 .add_modifier(Modifier::RAPID_BLINK),
                         })
-                        .block(Block::bordered().title("Input"));
-                    input_field.input_mode = InputMode::Editing;
+                        .block(Block::bordered().title("Old version"));
+                    input_field_old_version.input_mode = InputMode::Normal;
+                    let input_new_version = Paragraph::new(input_field_new_version.input.as_str())
+                        .style(match input_field_new_version.input_mode {
+                            InputMode::Normal => Style::default(),
+                            InputMode::Editing => Style::default()
+                                .fg(ratatui::style::Color::Magenta)
+                                .add_modifier(Modifier::RAPID_BLINK),
+                        })
+                        .block(Block::bordered().title("New version"));
+                    input_field_new_version.input_mode = InputMode::Editing;
                     frame.render_widget(Clear, popup_area);
-                    frame.render_widget(input_widget, popup_area);
-                    match input_field.input_mode {
+                    frame.render_widget(input_old_version, popup_layout[0]);
+                    frame.render_widget(input_new_version, popup_layout[1]);
+                    match input_field_old_version.input_mode {
                         InputMode::Normal => {}
                         InputMode::Editing => {
                             frame.set_cursor_position(ratatui::layout::Position::new(
-                                popup_area.x + input_field.character_index as u16 + 1,
+                                popup_area.x + input_field_old_version.character_index as u16 + 1,
                                 popup_area.y + 1,
                             ))
                         }
@@ -97,7 +112,16 @@ impl App {
                 }
             })?;
             if let Event::Key(key) = event::read()? {
-                match input_field.input_mode {
+                if key.kind == KeyEventKind::Press && key.code == KeyCode::Tab {
+                    if input_field_old_version.input_mode == InputMode::Normal {
+                        input_field_old_version.input_mode = InputMode::Editing;
+                        input_field_new_version.input_mode = InputMode::Normal;
+                    } else {
+                        input_field_old_version.input_mode = InputMode::Normal;
+                        input_field_new_version.input_mode = InputMode::Editing;
+                    }
+                }
+                match input_field_old_version.input_mode {
                     InputMode::Normal => {
                         if key.kind == KeyEventKind::Press {
                             match key.code {
@@ -133,19 +157,21 @@ impl App {
                         if key.kind == KeyEventKind::Press {
                             match key.code {
                                 KeyCode::Enter => {
-                                    input_field.reset_input();
-                                    input_field.reset_cursor();
-                                    input_field.input_mode = InputMode::Normal;
+                                    input_field_old_version.reset_input();
+                                    input_field_old_version.reset_cursor();
+                                    input_field_old_version.input_mode = InputMode::Normal;
                                     self.show_popup = false;
                                 }
-                                KeyCode::Char(to_insert) => input_field.enter_char(to_insert),
-                                KeyCode::Backspace => input_field.delete_char(),
-                                KeyCode::Left => input_field.move_cursor_left(),
-                                KeyCode::Right => input_field.move_cursor_right(),
+                                KeyCode::Char(to_insert) => {
+                                    input_field_old_version.enter_char(to_insert)
+                                }
+                                KeyCode::Backspace => input_field_old_version.delete_char(),
+                                KeyCode::Left => input_field_old_version.move_cursor_left(),
+                                KeyCode::Right => input_field_old_version.move_cursor_right(),
                                 KeyCode::Esc => {
-                                    input_field.reset_input();
-                                    input_field.reset_cursor();
-                                    input_field.input_mode = InputMode::Normal;
+                                    input_field_old_version.reset_input();
+                                    input_field_old_version.reset_cursor();
+                                    input_field_old_version.input_mode = InputMode::Normal;
                                     self.show_popup = false;
                                 }
                                 _ => {}
@@ -168,4 +194,11 @@ fn create_popup_area(area: Rect) -> Rect {
     let [area] = vertical.areas(area);
     let [area] = horizontal.areas(area);
     area
+}
+
+fn create_input_layout(area: Rect) -> Rc<[Rect]> {
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(vec![Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(area)
 }
